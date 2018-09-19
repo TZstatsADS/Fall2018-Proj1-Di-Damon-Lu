@@ -1,0 +1,32 @@
+---
+title: "Data Cleansing & Preprocessing"
+author: "Di Lu"
+date: "September 16, 2018"
+output: html_document
+---
+
+*This script is to cleanse and preprocess data.*
+```{r load libraries and sources, message=FALSE, warning=FALSE, include=FALSE}
+library(tm)
+library(tidytext)
+library(tidyverse)
+library(DT)
+
+source("../lib/preprocess.R")
+```
+
+## 1. Read the original happy moment data.
+```{r read data, message=FALSE, warning=FALSE}
+hm_data <- read_csv("../data/cleaned_hm.csv")
+```
+
+## 2. Clean the data.
+The starter code provides a very well designed preprocessing procedure. This chunk uses `extract_keywords` function, a wrap-up of all method provided in starter code, to make the cleaner. Here I also included a column for the text before stemming and removing stopwords. So, it is more readable.
+```{r clean hm data, message=FALSE, warning=FALSE}
+hm_data <- extract_keywords(hm_data)
+```
+
+## 3. Save the data.
+```{r save data, message=FALSE, warning=FALSE}
+write_csv(hm_data, "../output/processed_moments.csv")
+```

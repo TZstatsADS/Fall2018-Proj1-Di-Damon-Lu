@@ -1,0 +1,385 @@
+---
+title: 'Data_Story: What Makes People Happy?'
+author: "Di Lu dl3152"
+date: "September 15, 2018"
+output: html_document
+---
+```{r Load Libraries, include=FALSE, warning=FALSE, message=FALSE}
+library(tm)
+library(topicmodels)
+library(wordcloud2)
+library(tidyverse)
+library(readr)
+library(dplyr)
+library(DT)
+library(ggplot2)
+
+source("../lib/helpers.R")
+```
+
+## 1. Before Getting Started
+
+First, we load the data.
+
+```{r Read Data, warning=FALSE, message=FALSE}
+# Read the happy moment data and keep only variables of interest.
+hm_data <- read_csv("../output/processed_moments.csv") %>%
+  select(id, wid, reflection_period, cleaned_hm, num_sentence, norm_hm, text)
+
+# Read the demographica data.
+demo_data <- read_csv("../data/demographic.csv")
+# Convert the age column to integer. It will give some NAs because some
+# people are not willing to provide their age info.
+demo_data$age <- as.integer(demo_data$age)
+```
+
+Now let's take a look at the happy moment data.
+
+```{r message=FALSE, warning=FALSE, paged.print=TRUE}
+datatable(hm_data)
+```
+
+`hm_data` contains the ids of the happy moments, wids indicating the writers' ids, the original sentences, number of sentences in the original responses and texts extracted from the original sentences.
+
+So what about the demographic data?
+
+```{r message=FALSE, warning=FALSE}
+datatable(demo_data)
+```
+
+Again, wids are the ids of the writers. We also have their ages, if they are willing to provide them. The gender, his/her marital status and whether or not the individual is a parent.
+
+
+## 2. Sentence Length
+
+So how many words are needed for people to express their happiness?
+
+```{r warning=FALSE}
+# Count the length of each happy moment.
+hm_data$counts <- count_word(hm_data$norm_hm, sep = "[ ]+")
+# Group them accordingly.
+count_cuts <- cut(hm_data$counts, breaks = c(seq(0, 50, 5), Inf),
+                  labels = c("0-5", "5-10", "10-15", "15-20", "20-25", 
+                             "25-30", "30-35", "35-40", "40-45", 
+                             "45-50", ">50"))
+ggplot() + 
+  geom_bar(stat = "count", 
+           aes(x = count_cuts, fill = count_cuts)) +
+  xlab("Number of Words") + ylab("Number of Happy Moments") +
+  guides(fill = FALSE)
+```
+
+It seems like lot of people can express their happiness around 8 - 20 words. But wait, are there any extreme examples? Apparently yes!
+
+```{r}
+cat(paste(substr(hm_data[which.max(hm_data$counts), 4], 1, 1000),
+          "\n\n..."))
+```
+
+`1137` words are used to describe this experience. So, at least I can feel his excitement. By the way, if you are interested in this experience, you can go to `hmid: 88790` in the original csv file. I also include a picture of Velankanni to let you know why he is so excited.
+
+```{r pressure, echo=FALSE, fig.cap="Velankanni", out.width = '100%'}
+knitr::include_graphics("../figs/Velankanni.jpg")
+```
+
+## 3. Topic Model.
+
+There are many different types of happiness. So what are making people happy?
+
+```{r Topic Model, message=FALSE, warning=FALSE}
+# Construct a corpus.
+corpus <- Corpus(VectorSource(hm_data$text))
+
+dtm <- DocumentTermMatrix(corpus,
+                          control = list(
+                            wordLengths=c(2, Inf),
+                            bounds = list(global = c(1,Inf)),
+                            removeNumbers = TRUE,
+                            weighting = weightTf)
+                          )
+
+lda_model <- LDA(dtm, 12, method = "Gibbs", control = list(seed=20180910, burnin=1000))
+lda_terms <- as.data.frame(terms(lda_model, k = 100))
+
+head(lda_terms, 10)
+```
+
+Next, we try to interpret the returned results.
+
+### Topic 1: Nature & Pet
+
+```{r}
+visualize_terms(lda_terms[,1])
+```
+It is not surprising to see that people will get happy because of their pets. Nature is another reason that makes people happy. Some people may enjoy certain time of a day. Some people enjoy certain type of weather.
+
+### Topic 2: Friends
+
+```{r}
+visualize_terms(lda_terms[,2])
+```
+
+People spend time to chat with their friends, and the reward is definitely happiness.
+
+### Topic 3: Food!
+
+```{r}
+visualize_terms(lda_terms[,3])
+```
+
+If there are some wrong clustered results in the previous two cases, then this one is absolutely straightforward and accurate. Eating makes us happy. So, you know what to do next time when you feel unhappy.
+
+### Topic 4: Travel
+```{r}
+visualize_terms(lda_terms[,4])
+```
+
+"Hotel", "Las Vegas", "tour" and "trip". I am wondering if Velankanni receives a high weight in this topic.
+
+### Topic 5: Special Days & Parents
+```{r}
+visualize_terms(lda_terms[,5])
+```
+
+Find some reasons to celebrate. Celerations break up a dull weekly routine. If you really cannot come up with any good idea, then call your parents can also be a good choice.
+
+### Topic 6: Feelings
+```{r}
+visualize_terms(lda_terms[,6])
+```
+
+Probably sometimes we don't need to do any special things to gain happiness. Just adjust our mood and try to stay positive, then everything will be fine.
+
+### Topic 7: Shopping
+```{r}
+visualize_terms(lda_terms[,7])
+```
+
+Yes and indeed, shopping is a good way to find happiness. After seeing this, I decided to buy myself a gift.
+
+### Topic 8: Study
+```{r}
+visualize_terms(lda_terms[,8])
+```
+
+Okay, studying makes me happy!!!
+
+### Topic 9: Family
+```{r}
+visualize_terms(lda_terms[,9])
+```
+
+"Daughter", "son", "wife", "husband". Our loved ones always give us unlimited happiness.
+
+### Topic 10: Entertainment
+```{r}
+visualize_terms(lda_terms[,10])
+```
+
+Not surprisingly, video games, movies, tv series and all the sports are born to bring happiness to people.
+
+### Topic 11: Outdoor Activities
+```{r}
+visualize_terms(lda_terms[,11])
+```
+
+Instead of traveling for a long distance, people can get happy simply by going to their own gardens and plant some flowers. If you don't have a garden, just run away from the city and enjoy the nature.
+
+### Topic 12: Working & Money
+```{r}
+visualize_terms(lda_terms[,12])
+```
+
+Maybe it is more appropriate to use "achievement" here to describe the topic. Working itself might not be that enjoyable for a lot of people, but the joy of achievement coming along with working is. And yes, I love money.
+
+## 4. Topic Allocation
+
+So now, we have a lot of types of happy moments. The next question is, how often do people have a certain type of happiness?
+
+To investigate this, we allocate each happy moment a topic to see what is the driving reason of this happy moment.
+```{r}
+lda_topics <- topics(lda_model, k = 1)
+hm_data$topic <- as.factor(lda_topics)
+
+ggplot(data = hm_data) +
+  geom_bar(stat = "count", aes(x = topic, fill = topic)) +
+  scale_fill_discrete(name = "Topics",
+                      labels = c("1. Pet & Nature", "2. Friends", "3. Food", "4. Travel", 
+                                 "5. Special Days & Parents", "6. Feelings", 
+                                 "7. Shopping", "8. Study", "9. Family", "10. Entertainment", 
+                                 "11. Outdoor Activities", "12. Working & Money")) +
+  ylab("Number of Happy Moments") + xlab("Topics")
+```
+
+The most frequent reasons people feeling happy are related to their pets, their friends and food. The next question is, are these effected by demographics?
+
+### a) Topic Allocation by Gender
+
+We first retrieve the happy moments writers' personal information.
+
+```{r}
+topic_by_demo <- hm_data %>%
+  inner_join(demo_data, by = "wid") %>%
+  select(wid,
+         gender, 
+         marital, 
+         parenthood,
+         reflection_period,
+         age, 
+         country,
+         topic) %>%
+  filter(gender %in% c("m", "f")) %>%
+  filter(marital %in% c("single", "married")) %>%
+  filter(parenthood %in% c("n", "y")) %>%
+  filter(reflection_period %in% c("24h", "3m")) %>%
+  mutate(reflection_period = fct_recode(reflection_period, 
+                                        months_3 = "3m", hours_24 = "24h"))
+
+xlabels <- c("Pet & Nature", "Friends", "Food", "Travel", "Special Days",
+             "Feelings", "Shopping", "Study", "Family", "Entertainment", 
+             "Outdoor Activities", "Working & Money")
+```
+
+Then let's first see if gender influences on topic's distribution.
+
+```{r}
+topic_by_gender <- topic_by_demo %>%
+  count(gender, topic) %>% group_by(gender) %>%
+  mutate(freq = n / sum(n))
+
+ggplot(data = topic_by_gender) +
+  geom_bar(stat = "identity", 
+           aes(x = topic, y = freq, fill = gender, group = gender), 
+           position = "dodge") +
+  labs(title = "Topic Allocation by Gender", y = "Proportion", x = "Topic") +
+  scale_fill_discrete(name = "Gender",
+                      labels = c("Female", "Male")) +
+  scale_x_discrete(labels=xlabels) +
+  theme(axis.text.x = element_text(angle=60, hjust = 0.9))
+```
+
+The two distributions of topic allocation are quite similar to each other. However, it is interesting to notice that women enjoy family time more than men do. On the other hand, men mentoined entertainments, including "sport", "games", more, which is not a surprise.
+
+### b) Topic Allocation by Marital Status
+
+Next, we try to analyze whether marital status infects people's happy moment.
+
+```{r}
+topic_by_marital <- topic_by_demo %>%
+  count(marital, topic) %>% group_by(marital) %>%
+  mutate(freq = n / sum(n))
+
+ggplot(data = topic_by_marital) +
+  geom_bar(stat = "identity", 
+           aes(x = topic, y = freq, fill = marital, group = marital), 
+           position = "dodge") +
+  labs(title = "Topic Allocation by Marital Status", y = "Proportion", x = "Topic") +
+  scale_fill_discrete(name = "Marital Status",
+                      labels = c("Married", "Single")) +
+  scale_x_discrete(labels=xlabels) +
+  theme(axis.text.x = element_text(angle=60, hjust = 0.9))
+```
+
+As expected, married people enjoy more family time than single ones. And single people spend more time with their friend for happiness. Also another interesting point is that married people mention more about traveling, while single people prefer to stay at home for tv series and games.
+
+### c) Topic Allocation by Parenthood
+
+```{r}
+topic_by_parenthood <- topic_by_demo %>%
+  count(parenthood, topic) %>% group_by(parenthood) %>%
+  mutate(freq = n / sum(n))
+
+ggplot(data = topic_by_parenthood) +
+  geom_bar(stat = "identity", 
+           aes(x = topic, y = freq, fill = parenthood, group = parenthood), 
+           position = "dodge") +
+  labs(title = "Topic Allocation by Parenthood", y = "Proportion", x = "Topic") +
+  scale_fill_discrete(name = "Parenthood",
+                      labels = c("No", "Yes")) +
+  scale_x_discrete(labels=xlabels) +
+  theme(axis.text.x = element_text(angle=60, hjust = 0.9))
+```
+
+As can be seen, parents are way more likely to get happiness from their family.
+
+### d) Reflection Period
+
+Will there be any difference of topic allocations regarding long term and short experiences?
+
+```{r}
+topic_by_rp <- topic_by_demo %>%
+  count(reflection_period, topic) %>% group_by(reflection_period) %>%
+  mutate(freq = n / sum(n))
+
+ggplot(data = topic_by_rp) +
+  geom_bar(stat = "identity", 
+           aes(x = topic, y = freq, fill = reflection_period, group = reflection_period), 
+           position = "dodge") +
+  labs(title = "Topic Allocation by Reflection Period", y = "Proportion", x = "Topic") +
+  scale_fill_discrete(name = "Reflection Period",
+                      labels = c("24 Hours", "3 Months")) +
+  scale_x_discrete(labels=xlabels) +
+  theme(axis.text.x = element_text(angle=60, hjust = 0.9))
+```
+
+The answer is yes. If you ask a people what makes him feel happy in the last 24 hours, he is more likely to share with you how joyful it was to walk his dog, or if he enjoys today's morning, or last night's wonderful dinner. However, long term happiness is more likely from travelling, buying something, or the achievement one made in study or working.
+
+### e) Topic Allocation by Age
+
+My personal guess is that young people mention friends and entertainment more frequently than elder people. Let's see if I am right about this.
+
+We divide people into 4 groups according their age. The four groups are below 30, 30 - 40, 40 - 50 and above 50. This is because the first quantile and third quantile are 25 and 37 respectively.
+
+```{r}
+topic_by_demo <- topic_by_demo[!is.na(topic_by_demo$age) & between(topic_by_demo$age, 18, 70),]
+topic_by_demo$age <- cut(topic_by_demo$age, breaks = c(-Inf, 30, 40, 50, Inf), 
+                         labels = c("<30", "30-40", "40-50", ">50"))
+topic_by_age <- topic_by_demo %>%
+  count(age, topic) %>% group_by(age) %>%
+  mutate(freq = n / sum(n))
+
+ggplot(data = topic_by_age) +
+  geom_bin2d(stat = "identity", aes(topic, age, fill = freq)) +
+  labs(x = "Topic", y = "Age", title = "Topic Allocation by Age") +
+  scale_fill_gradient2(low="lightyellow", high = "red", name = "Proportion") +
+  scale_x_discrete(labels=xlabels) +
+  theme(axis.text.x = element_text(angle=60, hjust = 0.9))
+```
+
+It's true. People aged 30 or less do prefer to spend time with their friends. They celebrate more special days. Do not appreciate the joy of being with their families as much as elder people. They also enjoy studying more than others. Another interesting point is that elder people (>50) tend to do more outdoor activities and yes, they enjoy their family time most.
+
+### f) Topic Allocation by Country
+
+Is happiness regional? Or if people from different places enjoy different kinds of happiness?
+
+Unfortunately, the data we have is pretty skewed. We have 99 nationalities, however only two of them, India and USA, have more than 10,000 happy moment writers. The other 97 countries have 4314 writers in total. Therefore, we try to group people from other countries except for USA and India into a same class called `Other`.
+
+```{r}
+topic_by_demo$country[!topic_by_demo$country %in% c("USA", "IND")] <- "Other"
+
+topic_by_country <- topic_by_demo %>%
+  count(country, topic) %>% group_by(country) %>%
+  mutate(freq = n / sum(n))
+
+ggplot(data = topic_by_country) +
+  geom_bar(stat = "identity", 
+           aes(x = topic, y = freq, fill = country, group = country), 
+           position = "dodge") +
+  labs(title = "Topic Allocation by Country", y = "Proportion", x = "Topic") +
+  scale_fill_discrete(name = "Country",
+                      labels = c("IND", "Other", "USA")) +
+  scale_x_discrete(labels=xlabels) +
+  theme(axis.text.x = element_text(angle=60, hjust = 0.9))
+```
+
+The first thing to notice is how much Indian people love travelling and special days. USA and the rest of the word are more or less similar in the way they define happiness. However, remember we only have 4314 pieces of data for all the other countries. So, it is not fair to represent the rest of the six billions people with the data we have.
+
+## 5. Conclusion
+
+In this data story, we studied the general information of `HappyDB` and what might make people happy. We found some interesting results:
+  
+  1. Normally, people use 5 to 20 words to describe their happiness. But if you wish, you can go as further as 1137 words :)
+  2. There are 12 different topics of happiness. Try to think about those things when you are unhappy.
+  3. Different people tend to value different kinds of happiness more. So, if you want to make your parents happy, a good idea might be go hiking with them. Or, they are already happy enough when they are with you.
+
+Have a good day and stay happy!

@@ -1,5 +1,5 @@
-# ADS Project 1: What made you happy today?
+# Data Story: What Makes People Happy
+
 ### Output folder
 
-The output directory contains analysis output, processed datasets, logs, or other processed things.
-
+The folder contains the processed data, `processed_moments.csv`. Run `/doc/Preprocess.Rmd` to reproduce it.

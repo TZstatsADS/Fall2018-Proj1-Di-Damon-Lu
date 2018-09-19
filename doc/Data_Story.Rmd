@@ -79,6 +79,8 @@ cat(paste(substr(hm_data[which.max(hm_data$counts), 4], 1, 1000),
 `1137` words are used to describe this experience. So, at least I can feel his excitement. By the way, if you are interested in this experience, you can go to `hmid: 88790` in the original csv file. I also include a picture of Velankanni to let you know why he is so excited.
 
 ```{r pressure, echo=FALSE, fig.cap="Velankanni", out.width = '100%'}
+download.file("https://www.trawell.in/admin/images/upload/435935206Velankanni_Church_Main.jpg",
+              "../figs/velankanni.jpg", quiet = TRUE, mode = "wb")
 knitr::include_graphics("../figs/Velankanni.jpg")
 ```
 

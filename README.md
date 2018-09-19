@@ -1,20 +1,32 @@
-# Applied Data Science @ Columbia
-## Fall 2018
-## Project 1: What made you happy today?
+# Data Story: What Makes People Happy
+#### Di Lu, dl3152
 
-![image](figs/title.jpeg)
+![image](figs/happy.jpg)
 
-### [Project Description](doc/)
-This is the first and only *individual* (as opposed to *team*) this semester. 
+### Introduction
 
-Term: Fall 2018
+Happiness is tricky. Different people use different ways to express their happiness. Different people feel different kinds of happiness. So, what are the general things that make people happy? Does happiness related to people's gender, age, or even nationality?
 
-+ Projec title: Lorem ipsum dolor sit amet
-+ This project is conducted by [your name]
+This repo works on [HappyDB](https://rit-public.github.io/HappyDB/) dataset, "a corpus of 100,000+ crowd-sourced happy moments". To begin with, one can either view the [final result](doc/Data_Story.html) directly, or knit [the raw Rmd file](doc/Data_Story.Rmd) himself.
 
-+ Project summary: [a short summary] Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
+### prerequisites
 
-Following [suggestions](http://nicercode.github.io/blog/2013-04-05-projects/) by [RICH FITZJOHN](http://nicercode.github.io/about/#Team) (@richfitz). This folder is orgarnized as follows.
+The project is built on `R`. Also it needs [`Rstudio`](https://www.rstudio.com/) to knit the `Rmd` files.
+
+Required packages are:
+```
+  1. tm
+  2. tidyverse
+  3. topicmodels
+  4. DT
+  5. ggplot2
+```
+ 
+To run the [`Preprocessing.Rmd`](doc/Preprocessing.Rmd), one also needs `tidytext`.
+
+### Project Structure
+
+The repo is orgarnized as follows.
 
 ```
 proj/
